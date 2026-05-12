@@ -240,9 +240,9 @@ body{font-family:var(--font);background:var(--bg);min-height:100vh;color:var(--t
 </div>
 
 <script>
-const GENRES=['all','rock','pop','hip hop','jazz','electronic','r&b','soul','metal','folk','classical','country','reggae','punk','indie'];
+const GENRES=['all','rock','pop','hip-hop','jazz','electronic','r&b','soul','metal','folk','classical','country','reggae','punk','indie','salsa'];
 const COLORS=['#2b2d42','#6b1a1a','#1d4ed8','#1a5c1a','#b91c1c','#92610a','#1e40af','#5b21b6','#065f46','#be185d','#155e75','#7c2d12','#0f172a','#4a1d96','#3b0764','#166534','#854d0e','#1c1917','#0ea5e9','#7f1d1d'];
-const SEED_ARTISTS=['radiohead','beatles','kendrick lamar','frank ocean','beyonce','pink floyd','nirvana','michael jackson','taylor swift','kanye west','amy winehouse','miles davis','fleetwood mac','the weeknd','bob dylan','daft punk','prince','stevie wonder','madonna','david bowie','lcd soundsystem','arcade fire','tame impala','nas','jay-z','billie eilish','adele','drake','rihanna','eminem','sade','portishead','bjork','fiona apple','phoebe bridgers','lorde','haim','angel olsen'];
+const SEED_ARTISTS=['radiohead','beatles','kendrick lamar','frank ocean','beyonce','pink floyd','nirvana','michael jackson','taylor swift','kanye west','amy winehouse','miles davis','fleetwood mac','the weeknd','bob dylan','daft punk','prince','stevie wonder','madonna','david bowie','lcd soundsystem','arcade fire','tame impala','nas','jay-z','billie eilish','adele','drake','rihanna','eminem','sade','portishead','bjork','fiona apple','phoebe bridgers','lorde','haim','angel olsen','cardi b','lizzo','bad bunny','j balvin','marc anthony','celia cruz','willie colon','rubén blades','héctor lavoe','fania all stars','buena vista social club','ibrahim ferrer','tito puente','arturo sandoval','carlos santana','ibrahim maalouf','thievery corporation'];
 const GRID_SIZES=[
   {label:'sm',cols:'95px',icon:'<svg width="15" height="15" viewBox="0 0 18 18" fill="currentColor"><rect x="0.5" y="0.5" width="4.5" height="4.5" rx="1.2"/><rect x="6.75" y="0.5" width="4.5" height="4.5" rx="1.2"/><rect x="13" y="0.5" width="4.5" height="4.5" rx="1.2"/><rect x="0.5" y="6.75" width="4.5" height="4.5" rx="1.2"/><rect x="6.75" y="6.75" width="4.5" height="4.5" rx="1.2"/><rect x="13" y="6.75" width="4.5" height="4.5" rx="1.2"/><rect x="0.5" y="13" width="4.5" height="4.5" rx="1.2"/><rect x="6.75" y="13" width="4.5" height="4.5" rx="1.2"/><rect x="13" y="13" width="4.5" height="4.5" rx="1.2"/></svg>'},
   {label:'md',cols:'140px',icon:'<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>'},
@@ -351,7 +351,7 @@ function closePanel(){
 
 async function fetchTracks(id){
   try{
-    const r=await fetch(`https://musicbrainz.org/ws/2/release/${id}?inc=recordings&fmt=json`,{headers:{'User-Agent':'MyAlbumsShelf/4.0 ( music-shelf-app )'}});
+    const r=await fetch(`https://musicbrainz.org/ws/2/release/${id}?inc=recordings&fmt=json`);
     if(!r.ok) throw new Error('');
     const data=await r.json();
     const date=data.date||data['release-events']?.[0]?.date||'';
@@ -505,27 +505,42 @@ function renderShelf(){
   document.getElementById('status-bar').innerHTML=`<span>${saved.length}</span> album${saved.length!==1?'s':''} saved`;
 }
 
-// ── API ────────────────────────────────────────────────────────────────────
-async function mbFetch(query,offset){
-  const params=new URLSearchParams({query,limit:PAGE,offset,fmt:'json'});
-  const r=await fetch(`https://musicbrainz.org/ws/2/release/?${params}`,{headers:{'User-Agent':'MyAlbumsShelf/4.0 ( music-shelf-app )'}});
-  if(!r.ok) throw new Error('API error '+r.status);
-  return r.json();
-}
+// ── Genre → MusicBrainz tag mapping
+const GENRE_TAGS={
+  'rock':'rock','pop':'pop','hip-hop':'hip hop','jazz':'jazz',
+  'electronic':'electronic','r&b':'rhythm and blues','soul':'soul',
+  'metal':'metal','folk':'folk','classical':'classical','country':'country',
+  'reggae':'reggae','punk':'punk','indie':'indie rock','salsa':'salsa'
+};
 
-// Track which seed artist we're currently browsing so it doesn't change mid-scroll
-let currentSeedIdx=0;
+// Rotating seed for popular mode — advances on each page load
+let popularSeedIdx=Math.floor(Math.random()*SEED_ARTISTS.length);
 
-function buildQuery(q,genre,sort){
-  let parts=[];
-  if(q.trim()){parts.push(`(release:"${q}" OR artist:"${q}")`);}
-  else{
-    if(sort==='popular'){parts.push(`artist:"${SEED_ARTISTS[currentSeedIdx%SEED_ARTISTS.length]}"`);}
-    else parts.push('status:Official');
+function buildQuery(q, genre, sort){
+  // Search mode: user typed something
+  if(q.trim()){
+    let base=`(release:"${q}" OR artist:"${q}") AND primarytype:Album AND status:Official`;
+    if(genre!=='all'){const tag=GENRE_TAGS[genre]||genre;base+=` AND tag:"${tag}"`;}
+    return base;
   }
-  if(genre!=='all') parts.push(`tag:"${genre}"`);
-  parts.push('primarytype:Album');parts.push('status:Official');
-  return parts.join(' AND ');
+
+  // Genre mode: show albums tagged with this genre, sorted by relevance
+  if(genre!=='all'){
+    const tag=GENRE_TAGS[genre]||genre;
+    // Use tag search — don't restrict by artist so it's unbiased
+    if(sort==='newest') return `tag:"${tag}" AND primarytype:Album AND status:Official AND date:[2000 TO *]`;
+    if(sort==='oldest') return `tag:"${tag}" AND primarytype:Album AND status:Official`;
+    // popular: use tag with a relevance boost by also requiring it as a secondary tag
+    return `tag:"${tag}" AND primarytype:Album AND status:Official`;
+  }
+
+  // No genre, no search — "All" mode
+  if(sort==='newest') return `primarytype:Album AND status:Official AND date:[2010 TO *]`;
+  if(sort==='oldest') return `primarytype:Album AND status:Official AND date:[1950 TO 1980]`;
+
+  // Popular / default: rotate through seed artists for variety
+  const seed=SEED_ARTISTS[popularSeedIdx%SEED_ARTISTS.length];
+  return `artist:"${seed}" AND primarytype:Album AND status:Official`;
 }
 
 function hookImageFallbacks(grid){
@@ -544,10 +559,40 @@ function hookImageFallbacks(grid){
   });
 }
 
+// Fetch with retry on 503 (MB rate limit)
+async function mbFetch(query, offset){
+  const params=new URLSearchParams({query, limit:PAGE, offset, fmt:'json'});
+  const url=`https://musicbrainz.org/ws/2/release/?${params}`;
+  for(let attempt=0;attempt<3;attempt++){
+    if(attempt>0) await new Promise(r=>setTimeout(r, 1200*attempt));
+    try{
+      // Do NOT send custom headers — browsers block User-Agent and it causes preflight CORS failures
+      const r=await fetch(url);
+      if(r.status===503||r.status===429){
+        // Rate limited — wait and retry
+        await new Promise(r=>setTimeout(r,2000));
+        continue;
+      }
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      return await r.json();
+    }catch(e){
+      if(attempt===2) throw e;
+    }
+  }
+}
+
+let lastFetchTime=0;
 async function fetchBrowse(reset=false){
   if(loading)return;
+  // Throttle: don't fire more than once per second
+  const now=Date.now();
+  if(now-lastFetchTime<1000&&!reset){loading=false;return;}
+  lastFetchTime=now;
   loading=true;
-  if(reset){browseOffset=0;browseTotal=0;resetSeen();currentSeedIdx=Math.floor(Math.random()*SEED_ARTISTS.length);}
+  if(reset){
+    browseOffset=0;browseTotal=0;resetSeen();
+    popularSeedIdx=Math.floor(Math.random()*SEED_ARTISTS.length);
+  }
   const q=document.getElementById('q').value;
   const grid=document.getElementById('grid');
   const spinner=document.getElementById('spinner');
@@ -562,35 +607,27 @@ async function fetchBrowse(reset=false){
 
     const releases=raw.filter(r=>r.id&&r.title&&!isDupe(r));
 
-    const noResults=grid.querySelectorAll('.card').length===0&&releases.length===0;
-
-    if(noResults&&raw.length===0){
-      // Truly no results from API
-      grid.innerHTML='<div class="shelf-empty"><p>No results — try a different search</p></div>';
+    if(raw.length===0&&grid.querySelectorAll('.card').length===0){
+      grid.innerHTML='<div class="shelf-empty"><p>No results — try a different search or genre</p></div>';
       document.getElementById('status-bar').innerHTML='';
     } else if(releases.length>0){
       grid.insertAdjacentHTML('beforeend',releases.map((r,i)=>cardHtml(r,i*22)).join(''));
       hookImageFallbacks(grid);
       const showing=grid.querySelectorAll('.card').length;
       document.getElementById('status-bar').innerHTML=`<span>${showing.toLocaleString()}</span> albums shown`;
-    } else if(raw.length>0&&releases.length===0){
-      // All results on this page were dupes — fetch next page automatically
-      loading=false;
-      spinner.classList.remove('on');
-      // Only auto-continue if there's more data and we haven't gone too deep
-      if(browseOffset<browseTotal&&browseOffset<PAGE*8){
-        fetchBrowse(false);
-        return;
-      }
+    } else if(raw.length>0&&releases.length===0&&browseOffset<Math.min(browseTotal,PAGE*6)){
+      // All dupes on this page — silently fetch next
+      loading=false;spinner.classList.remove('on');
+      fetchBrowse(false);return;
     }
 
-    // If popular mode and we've exhausted this artist's releases, switch to next artist
-    if(currentSort==='popular'&&raw.length<PAGE&&!q.trim()){
-      currentSeedIdx++;
-      browseOffset=0;
-      browseTotal=0;
+    // In popular/all mode: when we exhaust one seed artist, rotate to next on next scroll
+    if(!q.trim()&&activeGenre==='all'&&currentSort==='popular'&&raw.length<PAGE){
+      popularSeedIdx++;
+      browseOffset=0;browseTotal=0;
     }
   }catch(e){
+    console.error(e);
     if(grid.querySelectorAll('.card').length===0){
       grid.insertAdjacentHTML('beforeend','<div style="grid-column:1/-1;text-align:center;color:var(--faint);padding:2rem;font-size:0.7rem">Could not reach MusicBrainz — check your connection.</div>');
     }
@@ -620,9 +657,11 @@ function switchTab(t,el){
 document.addEventListener('keydown',e=>{if(e.key==='Escape') closePanel();});
 
 // ── Init ───────────────────────────────────────────────────────────────────
-document.getElementById('genre-row').innerHTML=GENRES.map(g=>
-  `<button class="pill${g==='all'?' on':''}" data-genre="${g}" onclick="setGenre('${g}')">${g==='all'?'All':g.charAt(0).toUpperCase()+g.slice(1)}</button>`
-).join('');
+const GENRE_LABELS={'all':'All','hip-hop':'Hip Hop','r&b':'R&B','salsa':'Salsa'};
+document.getElementById('genre-row').innerHTML=GENRES.map(g=>{
+  const label=GENRE_LABELS[g]||(g.charAt(0).toUpperCase()+g.slice(1));
+  return `<button class="pill${g==='all'?' on':''}" data-genre="${g}" onclick="setGenre('${g}')">${label}</button>`;
+}).join('');
 
 loadShelf();updateStats();fetchBrowse(true);
 </script>
