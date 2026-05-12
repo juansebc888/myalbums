@@ -98,15 +98,18 @@ body{font-family:var(--font);background:var(--bg);min-height:100vh;color:var(--t
 
 /* ── Panel overlay ── */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,0);z-index:100;pointer-events:none;transition:background 0.3s,backdrop-filter 0.3s,-webkit-backdrop-filter 0.3s}
-.overlay.open{background:rgba(0,0,0,0.22);pointer-events:all;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.overlay.open{background:rgba(0,0,0,0.38);pointer-events:all;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 
-.panel{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:28px 28px 0 0;z-index:101;transform:translateY(102%);transition:transform 0.4s var(--ease-out);max-height:88vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 -8px 40px rgba(0,0,0,0.12)}
-.panel.open{transform:translateY(0)}
-.panel-drag{width:40px;height:5px;background:var(--border);border-radius:999px;margin:14px auto 0;flex-shrink:0}
-.panel-head{display:flex;gap:18px;padding:18px 22px 0;flex-shrink:0}
+/* Centered bubble modal */
+.panel{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.88);background:var(--surface);border-radius:28px;z-index:101;width:min(520px,92vw);max-height:85vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,0.22),0 0 0 1px rgba(0,0,0,0.06);opacity:0;pointer-events:none;transition:transform 0.35s var(--ease-spring),opacity 0.25s var(--ease-out)}
+.panel.open{transform:translate(-50%,-50%) scale(1);opacity:1;pointer-events:all}
+.panel-drag{display:none}
+.panel-head{display:flex;gap:18px;padding:22px 22px 0;flex-shrink:0;position:relative}
+.panel-close{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:50%;border:1px solid var(--border);background:var(--bg);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem;color:var(--muted);transition:all 0.18s;line-height:1;padding:0;font-family:var(--font)}
+.panel-close:hover{background:var(--text);color:#fff;border-color:var(--text)}
 .panel-cover{width:96px;height:96px;border-radius:18px;object-fit:cover;background:var(--border);flex-shrink:0;box-shadow:0 4px 20px rgba(0,0,0,0.12)}
 .panel-cover-fallback{width:96px;height:96px;border-radius:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;flex-direction:column;gap:4px;padding:10px;box-shadow:0 4px 20px rgba(0,0,0,0.12)}
-.panel-meta{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:4px}
+.panel-meta{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:4px;padding-right:28px}
 .panel-title{font-size:1.05rem;font-weight:600;letter-spacing:-0.02em;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .panel-artist{font-size:0.8rem;color:var(--muted)}
 .panel-date{font-size:0.63rem;color:var(--faint);font-family:var(--mono);margin-top:2px}
@@ -115,11 +118,16 @@ body{font-family:var(--font);background:var(--bg);min-height:100vh;color:var(--t
 .btn-save:hover{border-color:var(--text);transform:translateY(-1px)}
 .btn-save:active{transform:scale(0.96)}
 .btn-save.saved-btn{background:var(--text);color:#fff;border-color:var(--text)}
-.stars-panel{display:flex;gap:3px}
-.sp{font-size:1.3rem;cursor:pointer;color:var(--border);transition:color 0.12s,transform 0.15s var(--ease-spring);line-height:1}
-.sp.on{color:var(--yellow)}
-.sp:hover{color:var(--yellow);transform:scale(1.3)}
-.sp:active{transform:scale(0.9)}
+
+/* Half-star rating */
+.stars-panel{display:flex;gap:1px;align-items:center}
+.star-wrap{position:relative;width:1.6rem;height:1.6rem;cursor:pointer;flex-shrink:0}
+.star-wrap svg{width:100%;height:100%;display:block;transition:transform 0.15s var(--ease-spring)}
+.star-wrap:hover svg{transform:scale(1.25)}
+.star-wrap:active svg{transform:scale(0.88)}
+.star-left,.star-right{position:absolute;top:0;height:100%;width:50%}
+.star-left{left:0}
+.star-right{right:0}
 
 .panel-body{overflow-y:auto;padding:18px 22px 2.5rem;flex:1;scroll-behavior:smooth;-webkit-overflow-scrolling:touch}
 .panel-section{margin-bottom:22px}
@@ -155,12 +163,7 @@ body{font-family:var(--font);background:var(--bg);min-height:100vh;color:var(--t
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes dotPulse{0%,80%,100%{opacity:0.2}40%{opacity:1}}
 
-/* Desktop side panel */
-@media(min-width:700px){
-  .panel{left:auto;right:0;top:0;bottom:0;width:420px;border-radius:28px 0 0 28px;max-height:100vh;transform:translateX(110%);box-shadow:-8px 0 40px rgba(0,0,0,0.1)}
-  .panel.open{transform:translateX(0)}
-  .panel-drag{display:none}
-}
+
 </style>
 </head>
 <body>
@@ -206,6 +209,7 @@ body{font-family:var(--font);background:var(--bg);min-height:100vh;color:var(--t
 <div class="panel" id="panel">
   <div class="panel-drag"></div>
   <div class="panel-head">
+    <button class="panel-close" onclick="closePanel()">✕</button>
     <img id="p-img" class="panel-cover" src="" alt="" onerror="this.style.display='none';document.getElementById('p-img-fallback').style.display='flex'">
     <div id="p-img-fallback" class="panel-cover-fallback" style="display:none"></div>
     <div class="panel-meta">
@@ -255,6 +259,31 @@ function loadShelf(){try{const s=localStorage.getItem('mab_shelf6');if(s)shelf=J
 function saveShelf(){try{localStorage.setItem('mab_shelf6',JSON.stringify(shelf));}catch(e){}}
 function albumColor(id){let h=0;for(let i=0;i<id.length;i++){h=((h<<5)-h)+id.charCodeAt(i);h|=0;}return COLORS[Math.abs(h)%COLORS.length];}
 function coverUrl(mbid){return `https://coverartarchive.org/release/${mbid}/front-250`;}
+
+// Try cover art, fall back to release-group art
+function loadCardImage(img, mbid, rgid){
+  img.src = coverUrl(mbid);
+  img.onerror = function(){
+    if(rgid){
+      img.onerror = function(){ img.style.display='none'; img.nextElementSibling.style.display='flex'; };
+      img.src = `https://coverartarchive.org/release-group/${rgid}/front-250`;
+    } else {
+      img.style.display='none'; img.nextElementSibling.style.display='flex';
+    }
+  };
+}
+
+// Dedupe seen titles+artists in browse results
+const seenTitles = new Set();
+function resetSeen(){ seenTitles.clear(); }
+function isDupe(r){
+  const title=(r.title||'').toLowerCase().replace(/\s*[\(\[].*(deluxe|edition|remaster|bonus|expanded|special|anniversary|version|reissue|vinyl|limited).*[\)\]]/i,'').trim();
+  const artist=(r['artist-credit']?.[0]?.artist?.name||r['artist-credit']?.[0]?.name||'').toLowerCase().trim();
+  const key=title+'||'+artist;
+  if(seenTitles.has(key)) return true;
+  seenTitles.add(key);
+  return false;
+}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function msToTime(ms){if(!ms)return'';const s=Math.round(ms/1000);return`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;}
 
@@ -281,12 +310,20 @@ ioObserver.observe(sentinel);
 // ── Panel ──────────────────────────────────────────────────────────────────
 function openPanel(album){
   panelAlbum=album;
-  const {id,title,artist,year}=album;
+  const {id,title,artist,year,rgid=''}=album;
   const color=albumColor(id);
   const img=document.getElementById('p-img');
   const fb=document.getElementById('p-img-fallback');
   img.style.display='block';fb.style.display='none';
   img.src='';
+  img.onerror=function(){
+    if(rgid&&img.src.includes('/release/')){
+      img.onerror=function(){img.style.display='none';fb.style.display='flex';};
+      img.src=`https://coverartarchive.org/release-group/${rgid}/front-250`;
+    } else {
+      img.style.display='none';fb.style.display='flex';
+    }
+  };
   requestAnimationFrame(()=>{img.src=coverUrl(id);});
   fb.style.background=color;
   fb.innerHTML=`<div class="fb-t" style="color:#fff">${esc(title)}</div><div class="fb-a">${esc(artist)}</div>`;
@@ -350,16 +387,40 @@ function updateSaveBtn(id){
 
 function renderPanelStars(id){
   const rating=shelf[id]?.rating||0;
-  document.getElementById('p-stars').innerHTML=[1,2,3,4,5].map(i=>
-    `<span class="sp${i<=rating?' on':''}" onclick="setPanelRating(${i})">${i<=rating?'★':'☆'}</span>`
-  ).join('');
+  // Build 5 stars with half-star support via SVG clip
+  let html='';
+  for(let i=1;i<=5;i++){
+    const full=rating>=i;
+    const half=!full&&rating>=i-0.5&&rating<i;
+    // SVG star: left half filled (half), full filled, or empty
+    const fillColor=`var(--yellow)`;
+    const emptyColor=`var(--border)`;
+    html+=`<span class="star-wrap" data-pos="${i}">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <clipPath id="sc-half-${i}"><rect x="0" y="0" width="12" height="24"/></clipPath>
+          <clipPath id="sc-full-${i}"><rect x="0" y="0" width="24" height="24"/></clipPath>
+        </defs>
+        <!-- empty base -->
+        <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" fill="${emptyColor}" stroke="${emptyColor}" stroke-width="1.5" stroke-linejoin="round"/>
+        <!-- filled overlay -->
+        ${full?`<polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" fill="${fillColor}" clip-path="url(#sc-full-${i})"/>`:''}
+        ${half?`<polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" fill="${fillColor}" clip-path="url(#sc-half-${i})"/>`:''}
+      </svg>
+      <span class="star-left" onclick="setPanelRating(${i-0.5})"></span>
+      <span class="star-right" onclick="setPanelRating(${i})"></span>
+    </span>`;
+  }
+  document.getElementById('p-stars').innerHTML=html;
 }
 
 function setPanelRating(v){
   if(!panelAlbum)return;
   const id=panelAlbum.id;
   if(!shelf[id]) shelf[id]={addedAt:Date.now(),title:panelAlbum.title,artist:panelAlbum.artist,year:panelAlbum.year};
-  shelf[id].rating=v;
+  // Toggle off if same rating clicked
+  if(shelf[id].rating===v) shelf[id].rating=0;
+  else shelf[id].rating=v;
   saveShelf();updateStats();renderPanelStars(id);
   updateCardSaved(id,true);updateSaveBtn(id);
 }
@@ -399,7 +460,7 @@ function updateStats(){
   const avg=rated.length?(rated.reduce((s,id)=>s+(shelf[id].rating||0),0)/rated.length).toFixed(1):'—';
   document.getElementById('s-total').textContent=ids.length;
   document.getElementById('s-rated').textContent=rated.length;
-  document.getElementById('s-avg').textContent=avg;
+  document.getElementById('s-avg').textContent=avg==='—'?avg:(parseFloat(avg)%1===0?parseFloat(avg).toFixed(0):avg);
 }
 
 // ── Card HTML ──────────────────────────────────────────────────────────────
@@ -408,12 +469,13 @@ function cardHtml(r,delay=0){
   const title=r.title||'Unknown';
   const artist=r['artist-credit']?.[0]?.artist?.name||r['artist-credit']?.[0]?.name||'Unknown';
   const year=(r.date||r['first-release-date']||'').slice(0,4);
+  const rgid=r['release-group']?.id||'';
   const saved=!!shelf[id];
   const color=albumColor(id);
-  const album={id,title,artist,year};
+  const album={id,title,artist,year,rgid};
   const aj=JSON.stringify(album).replace(/\\/g,'\\\\').replace(/'/g,'\\u0027').replace(/"/g,'&quot;');
-  return `<div class="card fade-in${saved?' saved':''}" id="card-${id}" style="animation-delay:${delay}ms" onclick="openPanel(${aj})">
-    <img src="${coverUrl(id)}" alt="${esc(title)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+  return `<div class="card fade-in${saved?' saved':''}" id="card-${id}" style="animation-delay:${delay}ms" onclick="openPanel(${aj})" data-rgid="${esc(rgid)}">
+    <img src="${coverUrl(id)}" alt="${esc(title)}" loading="lazy" data-mbid="${esc(id)}" data-rgid="${esc(rgid)}">
     <div class="card-fallback" style="background:${color}"><div class="fb-t">${esc(title)}</div><div class="fb-a">${esc(artist)}</div></div>
     <div class="check-ring"><svg viewBox="0 0 13 10"><polyline points="1.5,5 5,8.5 11.5,1.5"/></svg></div>
   </div>`;
@@ -429,15 +491,29 @@ function renderShelf(){
   const saved=ids.map(id=>({id,...shelf[id]})).filter(a=>!q||(a.title||'').toLowerCase().includes(q)||(a.artist||'').toLowerCase().includes(q)).sort((a,b)=>b.addedAt-a.addedAt);
   grid.innerHTML=saved.map((a,i)=>{
     const color=albumColor(a.id);
-    const title=a.title||'Unknown',artist=a.artist||'Unknown',year=a.year||'';
-    const album={id:a.id,title,artist,year};
+    const title=a.title||'Unknown',artist=a.artist||'Unknown',year=a.year||'',rgid=a.rgid||'';
+    const album={id:a.id,title,artist,year,rgid};
     const aj=JSON.stringify(album).replace(/\\/g,'\\\\').replace(/'/g,'\\u0027').replace(/"/g,'&quot;');
     return `<div class="card fade-in saved" id="card-${a.id}" style="animation-delay:${i*20}ms" onclick="openPanel(${aj})">
-      <img src="${coverUrl(a.id)}" alt="${esc(title)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <img src="${coverUrl(a.id)}" alt="${esc(title)}" loading="lazy" data-mbid="${esc(a.id)}" data-rgid="${esc(rgid)}">
       <div class="card-fallback" style="background:${color}"><div class="fb-t">${esc(title)}</div><div class="fb-a">${esc(artist)}</div></div>
       <div class="check-ring"><svg viewBox="0 0 13 10"><polyline points="1.5,5 5,8.5 11.5,1.5"/></svg></div>
     </div>`;
   }).join('');
+  // Hook fallbacks
+  grid.querySelectorAll('.card img[data-mbid]').forEach(img=>{
+    if(img._hookDone) return;
+    img._hookDone=true;
+    const rgid=img.dataset.rgid||'';
+    img.onerror=function(){
+      if(rgid&&img.src.includes('/release/')){
+        img.onerror=function(){img.style.display='none';img.nextElementSibling.style.display='flex';};
+        img.src=`https://coverartarchive.org/release-group/${rgid}/front-250`;
+      } else {
+        img.style.display='none';img.nextElementSibling.style.display='flex';
+      }
+    };
+  });
   document.getElementById('status-bar').innerHTML=`<span>${saved.length}</span> album${saved.length!==1?'s':''} saved`;
 }
 
@@ -464,7 +540,7 @@ function buildQuery(q,genre,sort){
 async function fetchBrowse(reset=false){
   if(loading)return;
   loading=true;
-  if(reset){browseOffset=0;browseTotal=0;}
+  if(reset){browseOffset=0;browseTotal=0;resetSeen();}
   const q=document.getElementById('q').value;
   const grid=document.getElementById('grid');
   const spinner=document.getElementById('spinner');
@@ -473,16 +549,30 @@ async function fetchBrowse(reset=false){
   try{
     const query=buildQuery(q,activeGenre,currentSort);
     const data=await mbFetch(query,browseOffset);
-    const releases=(data.releases||[]).filter(r=>r.id&&r.title);
+    const releases=(data.releases||[]).filter(r=>r.id&&r.title&&!isDupe(r));
     browseTotal=data.count||0;
-    browseOffset+=releases.length;
+    browseOffset+=(data.releases||[]).length;
     if(!releases.length&&reset){
       grid.innerHTML='<div class="shelf-empty"><p>No results — try a different search</p></div>';
       document.getElementById('status-bar').innerHTML='';
     } else {
       grid.insertAdjacentHTML('beforeend',releases.map((r,i)=>cardHtml(r,i*22)).join(''));
+      // Hook up fallback image loading for cards just added
+      grid.querySelectorAll('.card img[data-mbid]').forEach(img=>{
+        if(img._hookDone) return;
+        img._hookDone=true;
+        const mbid=img.dataset.mbid, rgid=img.dataset.rgid||'';
+        img.onerror=function(){
+          if(rgid&&img.src.includes('/release/')){
+            img.onerror=function(){img.style.display='none';img.nextElementSibling.style.display='flex';};
+            img.src=`https://coverartarchive.org/release-group/${rgid}/front-250`;
+          } else {
+            img.style.display='none';img.nextElementSibling.style.display='flex';
+          }
+        };
+      });
       const showing=grid.querySelectorAll('.card').length;
-      document.getElementById('status-bar').innerHTML=browseTotal?`<span>${showing.toLocaleString()}</span> of <span>${browseTotal.toLocaleString()}+</span> albums`:'';
+      document.getElementById('status-bar').innerHTML=browseTotal?`<span>${showing.toLocaleString()}</span> albums shown`:'';
     }
   }catch(e){
     if(reset) grid.insertAdjacentHTML('beforeend','<div style="grid-column:1/-1;text-align:center;color:var(--faint);padding:2rem;font-size:0.7rem">Could not reach MusicBrainz — check your connection.</div>');
