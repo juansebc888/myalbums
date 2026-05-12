@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>my albums</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Helvetica Neue',Arial,sans-serif;background:#f4f4f4;min-height:100vh}
+
+.header{text-align:center;padding:2.5rem 1rem 1.5rem}
+.header h1{font-size:2.5rem;font-weight:900;letter-spacing:-2px;color:#111}
+.header p{font-size:11px;color:#aaa;margin-top:5px;letter-spacing:0.1em;text-transform:uppercase;font-weight:700}
+
+.stats-bar{display:flex;justify-content:center;gap:0;margin:0 1.5rem 1.5rem;border-radius:20px;overflow:hidden;border:2px solid #e4e4e4;background:#fff;max-width:500px;margin-left:auto;margin-right:auto}
+.stat{flex:1;padding:14px 8px;text-align:center;border-right:2px solid #e4e4e4}
+.stat:last-child{border-right:none}
+.stat-n{font-size:24px;font-weight:900;color:#111;letter-spacing:-1px;line-height:1}
+.stat-l{font-size:9px;color:#bbb;margin-top:4px;text-transform:uppercase;letter-spacing:0.1em;font-weight:700}
+
+.nav{display:flex;justify-content:center;gap:8px;margin-bottom:1.5rem}
+.nav-btn{padding:9px 28px;border-radius:999px;border:2px solid #e4e4e4;background:#fff;font-size:12px;font-weight:800;color:#aaa;cursor:pointer;transition:all 0.18s;font-family:inherit;letter-spacing:0.04em;text-transform:uppercase}
+.nav-btn.active{background:#111;color:#fff;border-color:#111}
+.nav-btn:hover:not(.active){border-color:#bbb;color:#555}
+
+.toolbar{display:flex;align-items:center;gap:8px;padding:0 1.5rem 1.5rem;flex-wrap:wrap;max-width:900px;margin:0 auto}
+.searchbox{display:flex;align-items:center;gap:8px;background:#fff;border:2px solid #e4e4e4;border-radius:999px;padding:8px 16px;transition:border-color 0.2s;min-width:180px}
+.searchbox:focus-within{border-color:#111}
+.searchbox input{border:none;background:transparent;font-size:13px;color:#111;outline:none;width:100%}
+.searchbox input::placeholder{color:#ccc}
+.pills{display:flex;gap:6px;flex-wrap:wrap}
+.pill{padding:6px 14px;border-radius:999px;border:2px solid #e4e4e4;background:#fff;font-size:10px;font-weight:800;color:#aaa;cursor:pointer;transition:all 0.16s;font-family:inherit;letter-spacing:0.04em;text-transform:uppercase}
+.pill.on{background:#111;color:#fff;border-color:#111}
+.pill:hover:not(.on){border-color:#bbb;color:#555}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px;padding:0 1.5rem 3rem;max-width:900px;margin:0 auto}
+
+.card{border-radius:22px;overflow:hidden;cursor:pointer;background:#fff;border:3px solid transparent;position:relative;transition:border-color 0.2s}
+.card.saved{border-color:#22c55e}
+
+.cover{width:100%;aspect-ratio:1;position:relative;overflow:hidden;background:#e8e8e8;border-radius:19px 19px 0 0}
+.cover img{width:100%;height:100%;object-fit:cover;display:block;transition:transform 0.3s ease}
+.card:hover .cover img{transform:scale(1.07)}
+.cover-fallback{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:900;color:#fff;letter-spacing:-2px}
+
+.check-ring{position:absolute;top:8px;right:8px;width:26px;height:26px;border-radius:50%;background:#22c55e;display:flex;align-items:center;justify-content:center;transform:scale(0);transition:transform 0.3s cubic-bezier(.34,1.6,.64,1)}
+.card.saved .check-ring{transform:scale(1)}
+.check-ring svg{width:13px;height:13px;stroke:#fff;stroke-width:2.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+
+.card-foot{padding:10px 10px 12px;background:#fff}
+.stars{display:flex;gap:2px;justify-content:center}
+.s{font-size:20px;cursor:pointer;color:#e0e0e0;line-height:1;display:inline-block;transition:color 0.1s,transform 0.12s}
+.s.on{color:#facc15}
+.s:hover{transform:scale(1.3)}
+
+.shelf-empty{grid-column:1/-1;text-align:center;padding:5rem 1rem;color:#ccc}
+.shelf-empty i{font-size:3rem;display:block;margin-bottom:12px}
+.shelf-empty p{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px) scale(0.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>my albums</h1>
+  <p>personal music shelf</p>
+</div>
+
+<div class="stats-bar">
+  <div class="stat"><div class="stat-n" id="s-total">0</div><div class="stat-l">saved</div></div>
+  <div class="stat"><div class="stat-n" id="s-rated">0</div><div class="stat-l">rated</div></div>
+  <div class="stat"><div class="stat-n" id="s-avg">—</div><div class="stat-l">avg</div></div>
+</div>
+
+<div class="nav">
+  <button class="nav-btn active" onclick="switchTab('browse',this)">Browse</button>
+  <button class="nav-btn" onclick="switchTab('shelf',this)">My shelf</button>
+</div>
+
+<div class="toolbar">
+  <div class="searchbox">
+    <i class="ti ti-search" style="font-size:14px;color:#ccc"></i>
+    <input type="text" id="q" placeholder="Search albums…" oninput="render()">
+  </div>
+  <div class="pills" id="pills"></div>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<script>
+const ALBUMS=[
+  {id:1,title:"OK Computer",artist:"Radiohead",year:1997,genre:"Alt Rock",img:"https://upload.wikimedia.org/wikipedia/en/b/ba/Radioheadokcomputer.png",color:"#2b2d42"},
+  {id:2,title:"In Rainbows",artist:"Radiohead",year:2007,genre:"Alt Rock",img:"https://upload.wikimedia.org/wikipedia/en/3/3b/In_Rainbows_Official_Cover.jpg",color:"#6b1a1a"},
+  {id:3,title:"Blonde",artist:"Frank Ocean",year:2016,genre:"R&B",img:"https://upload.wikimedia.org/wikipedia/en/a/a0/Blonde_-_Frank_Ocean.jpeg",color:"#c8a96e"},
+  {id:4,title:"Channel Orange",artist:"Frank Ocean",year:2012,genre:"R&B",img:"https://upload.wikimedia.org/wikipedia/en/2/28/Channel_ORANGE.jpg",color:"#d4622a"},
+  {id:5,title:"To Pimp a Butterfly",artist:"Kendrick Lamar",year:2015,genre:"Hip-Hop",img:"https://upload.wikimedia.org/wikipedia/en/f/f6/To_Pimp_a_Butterfly.png",color:"#1a5c1a"},
+  {id:6,title:"DAMN.",artist:"Kendrick Lamar",year:2017,genre:"Hip-Hop",img:"https://upload.wikimedia.org/wikipedia/en/5/51/Kendrick_Lamar_-_Damn.png",color:"#b91c1c"},
+  {id:7,title:"Abbey Road",artist:"The Beatles",year:1969,genre:"Rock",img:"https://upload.wikimedia.org/wikipedia/en/4/42/Beatles_-_Abbey_Road.jpg",color:"#374151"},
+  {id:8,title:"Kind of Blue",artist:"Miles Davis",year:1959,genre:"Jazz",img:"https://upload.wikimedia.org/wikipedia/en/9/9c/MilesDavisKindofBlue.jpg",color:"#1e40af"},
+  {id:9,title:"Random Access Memories",artist:"Daft Punk",year:2013,genre:"Electronic",img:"https://upload.wikimedia.org/wikipedia/en/a/a7/Random_Access_Memories.jpg",color:"#92610a"},
+  {id:10,title:"Discovery",artist:"Daft Punk",year:2001,genre:"Electronic",img:"https://upload.wikimedia.org/wikipedia/en/2/27/Daft_Punk_-_Discovery.png",color:"#6d28d9"},
+  {id:11,title:"Thriller",artist:"Michael Jackson",year:1982,genre:"Pop",img:"https://upload.wikimedia.org/wikipedia/en/5/55/Michael_Jackson_-_Thriller.png",color:"#b45309"},
+  {id:12,title:"Nevermind",artist:"Nirvana",year:1991,genre:"Alt Rock",img:"https://upload.wikimedia.org/wikipedia/en/b/b7/NirvanaNevermindalbumcover.jpg",color:"#1d4ed8"},
+  {id:13,title:"Blue",artist:"Joni Mitchell",year:1971,genre:"Folk",img:"https://upload.wikimedia.org/wikipedia/en/d/df/Joni_Mitchell-Blue.jpg",color:"#0ea5e9"},
+  {id:14,title:"Currents",artist:"Tame Impala",year:2015,genre:"Psychedelic",img:"https://upload.wikimedia.org/wikipedia/en/9/9b/Tame_Impala_-_Currents.png",color:"#be185d"},
+  {id:15,title:"Rumours",artist:"Fleetwood Mac",year:1977,genre:"Rock",img:"https://upload.wikimedia.org/wikipedia/en/f/f9/Fleetwood_Mac_-_Rumours.jpg",color:"#5b4a8a"},
+  {id:16,title:"Innervisions",artist:"Stevie Wonder",year:1973,genre:"Soul",img:"https://upload.wikimedia.org/wikipedia/en/0/0e/Innervisions.jpg",color:"#065f46"},
+  {id:17,title:"Remain in Light",artist:"Talking Heads",year:1980,genre:"New Wave",img:"https://upload.wikimedia.org/wikipedia/en/2/2c/Talking_Heads_Remain_in_Light.jpg",color:"#9a3412"},
+  {id:18,title:"Horses",artist:"Patti Smith",year:1975,genre:"Punk",img:"https://upload.wikimedia.org/wikipedia/en/c/c3/Patti_Smith_Horses.jpg",color:"#44403c"},
+  {id:19,title:"A Love Supreme",artist:"John Coltrane",year:1965,genre:"Jazz",img:"https://upload.wikimedia.org/wikipedia/en/4/46/John_Coltrane_-_A_Love_Supreme.jpg",color:"#5c3d1e"},
+  {id:20,title:"Purple Rain",artist:"Prince",year:1984,genre:"Pop",img:"https://upload.wikimedia.org/wikipedia/en/9/9a/Princepurplerain.jpg",color:"#5b21b6"},
+  {id:21,title:"Homogenic",artist:"Björk",year:1997,genre:"Electronic",img:"https://upload.wikimedia.org/wikipedia/en/8/8d/Homogenic.png",color:"#1e3a5f"},
+  {id:22,title:"Midnight Marauders",artist:"A Tribe Called Quest",year:1993,genre:"Hip-Hop",img:"https://upload.wikimedia.org/wikipedia/en/0/0c/A_Tribe_Called_Quest_-_Midnight_Marauders.jpg",color:"#166534"},
+  {id:23,title:"Swimming",artist:"Mac Miller",year:2018,genre:"Hip-Hop",img:"https://upload.wikimedia.org/wikipedia/en/7/73/Swimming_-_Mac_Miller.jpg",color:"#155e75"},
+  {id:24,title:"Fetch the Bolt Cutters",artist:"Fiona Apple",year:2020,genre:"Alt Rock",img:"https://upload.wikimedia.org/wikipedia/en/3/3b/Fiona_Apple_-_Fetch_the_Bolt_Cutters.png",color:"#3b0764"},
+];
+
+// ── To add more albums, copy any line above and change the fields.
+// ── Find cover image URLs on Wikipedia (right-click image → copy image address).
+
+let shelf = {}, activeGenre = 'all', activeTab = 'browse';
+
+function loadShelf() {
+  try { const s = localStorage.getItem('my_albums_shelf'); if (s) shelf = JSON.parse(s); } catch(e) {}
+}
+function saveShelf() {
+  try { localStorage.setItem('my_albums_shelf', JSON.stringify(shelf)); } catch(e) {}
+}
+
+function initials(t) { return t.split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase(); }
+
+function starsHtml(id) {
+  const r = shelf[id]?.rating || 0;
+  return [1,2,3,4,5].map(i => `<span class="s${i<=r?' on':''}" data-id="${id}" data-v="${i}">★</span>`).join('');
+}
+
+function cardHtml(a, showStars) {
+  const saved = !!shelf[a.id];
+  return `<div class="card${saved?' saved':''}" id="card${a.id}" style="opacity:0">
+    <div class="cover" onclick="toggle(${a.id})">
+      <img src="${a.img}" alt="${a.title}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div class="cover-fallback" style="background:${a.color};display:none">${initials(a.title)}</div>
+      <div class="check-ring"><svg viewBox="0 0 13 10"><polyline points="1.5,5 5,8.5 11.5,1.5"/></svg></div>
+    </div>
+    ${showStars ? `<div class="card-foot"><div class="stars" data-id="${a.id}">${starsHtml(a.id)}</div></div>` : ''}
+  </div>`;
+}
+
+function animateIn() {
+  document.querySelectorAll('.card[style*="opacity:0"]').forEach((el, i) => {
+    setTimeout(() => {
+      el.style.animation = `fadeUp 0.4s cubic-bezier(.34,1.4,.64,1) forwards`;
+    }, i * 45);
+  });
+  document.querySelectorAll('.card').forEach(el => {
+    el.addEventListener('mouseenter', () => {
+      el.style.transition = 'transform 0.2s cubic-bezier(.34,1.4,.64,1), box-shadow 0.2s';
+      el.style.transform = 'scale(1.06)';
+      el.style.boxShadow = '0 16px 40px rgba(0,0,0,0.14)';
+    });
+    el.addEventListener('mouseleave', () => {
+      el.style.transform = 'scale(1)';
+      el.style.boxShadow = 'none';
+    });
+  });
+}
+
+function updateStats() {
+  const ids = Object.keys(shelf).map(Number);
+  const rated = ids.filter(id => shelf[id]?.rating > 0);
+  const avg = rated.length ? (rated.reduce((s,id) => s + (shelf[id].rating||0), 0) / rated.length).toFixed(1) : '—';
+  document.getElementById('s-total').textContent = ids.length;
+  document.getElementById('s-rated').textContent = rated.length;
+  document.getElementById('s-avg').textContent = avg;
+}
+
+function render() {
+  const q = (document.getElementById('q')?.value || '').toLowerCase();
+  const genres = ['all', ...new Set(ALBUMS.map(a => a.genre).sort())];
+
+  document.getElementById('pills').innerHTML = genres.map(g =>
+    `<button class="pill${activeGenre===g?' on':''}" onclick="setGenre('${g}')">${g==='all'?'All':g}</button>`
+  ).join('');
+
+  let list = ALBUMS.filter(a => {
+    const mq = !q || a.title.toLowerCase().includes(q) || a.artist.toLowerCase().includes(q);
+    const mg = activeGenre === 'all' || a.genre === activeGenre;
+    return mq && mg;
+  });
+
+  const g = document.getElementById('grid');
+  if (activeTab === 'browse') {
+    g.innerHTML = list.map(a => cardHtml(a, false)).join('');
+  } else {
+    const ids = Object.keys(shelf).map(Number);
+    const saved = ALBUMS.filter(a => ids.includes(a.id));
+    g.innerHTML = saved.length
+      ? saved.map(a => cardHtml(a, true)).join('')
+      : `<div class="shelf-empty"><i class="ti ti-vinyl"></i><p>Click any cover to save it here</p></div>`;
+  }
+
+  g.querySelectorAll('.stars .s').forEach(s => {
+    s.addEventListener('click', e => {
+      e.stopPropagation();
+      const id = Number(s.dataset.id), v = Number(s.dataset.v);
+      if (!shelf[id]) shelf[id] = { addedAt: Date.now() };
+      shelf[id].rating = v;
+      saveShelf(); updateStats();
+      const row = g.querySelector(`.stars[data-id="${id}"]`);
+      if (row) row.querySelectorAll('.s').forEach((x,i) => x.classList.toggle('on', i < v));
+    });
+  });
+
+  updateStats();
+  setTimeout(animateIn, 20);
+}
+
+function toggle(id) {
+  const card = document.getElementById('card' + id);
+  if (shelf[id]) {
+    delete shelf[id];
+    card?.classList.remove('saved');
+  } else {
+    shelf[id] = { rating: 0, addedAt: Date.now() };
+    if (card) {
+      card.classList.add('saved');
+      card.style.transition = 'transform 0.35s cubic-bezier(.34,1.6,.64,1)';
+      card.style.transform = 'scale(1.1)';
+      setTimeout(() => { card.style.transform = 'scale(1)'; }, 350);
+    }
+  }
+  saveShelf(); updateStats();
+  if (activeTab === 'shelf') render();
+}
+
+function setGenre(g) { activeGenre = g; render(); }
+function switchTab(t, el) {
+  activeTab = t;
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  render();
+}
+
+loadShelf();
+render();
+</script>
+</body>
+</html>
