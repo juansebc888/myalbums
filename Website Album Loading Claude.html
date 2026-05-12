@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>my albums</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:#f0ede8;min-height:100vh}
+
+.header{text-align:center;padding:2rem 1rem 1rem}
+.header h1{font-family:'Bebas Neue',sans-serif;font-size:3.2rem;letter-spacing:3px;color:#111;line-height:1}
+.header p{font-size:10px;color:#aaa;margin-top:4px;letter-spacing:0.18em;text-transform:uppercase;font-weight:700}
+
+.stats-bar{display:flex;justify-content:center;margin:0 auto 1.2rem;border-radius:18px;overflow:hidden;border:2px solid #ddd8d0;background:#fff;max-width:480px;box-shadow:0 2px 12px rgba(0,0,0,0.06)}
+.stat{flex:1;padding:12px 8px;text-align:center;border-right:2px solid #ddd8d0}
+.stat:last-child{border-right:none}
+.stat-n{font-family:'Bebas Neue',sans-serif;font-size:26px;color:#111;letter-spacing:1px;line-height:1}
+.stat-l{font-size:9px;color:#bbb;margin-top:3px;text-transform:uppercase;letter-spacing:0.12em;font-weight:700}
+
+.nav{display:flex;justify-content:center;gap:8px;margin-bottom:1.2rem}
+.nav-btn{padding:8px 24px;border-radius:999px;border:2px solid #ddd8d0;background:#fff;font-size:11px;font-weight:700;color:#999;cursor:pointer;transition:all 0.15s;font-family:'DM Sans',sans-serif;letter-spacing:0.08em;text-transform:uppercase}
+.nav-btn.active{background:#111;color:#fff;border-color:#111}
+.nav-btn:hover:not(.active){border-color:#aaa;color:#444}
+
+.toolbar{display:flex;align-items:center;gap:8px;padding:0 1.2rem 1rem;flex-wrap:wrap;max-width:1100px;margin:0 auto}
+.searchbox{display:flex;align-items:center;gap:8px;background:#fff;border:2px solid #ddd8d0;border-radius:999px;padding:8px 16px;transition:border-color 0.2s;flex:1;max-width:380px;box-shadow:0 1px 6px rgba(0,0,0,0.04)}
+.searchbox:focus-within{border-color:#111}
+.searchbox svg{flex-shrink:0;color:#ccc}
+.searchbox input{border:none;background:transparent;font-size:13px;color:#111;outline:none;width:100%;font-family:'DM Sans',sans-serif}
+.searchbox input::placeholder{color:#ccc}
+
+.sort-wrap{display:flex;gap:6px}
+.sort-btn{padding:7px 14px;border-radius:999px;border:2px solid #ddd8d0;background:#fff;font-size:10px;font-weight:700;color:#aaa;cursor:pointer;transition:all 0.15s;font-family:'DM Sans',sans-serif;letter-spacing:0.06em;text-transform:uppercase;white-space:nowrap}
+.sort-btn.on{background:#111;color:#fff;border-color:#111}
+
+.genre-row{padding:0 1.2rem 1rem;max-width:1100px;margin:0 auto;display:flex;gap:6px;flex-wrap:wrap}
+.pill{padding:5px 13px;border-radius:999px;border:2px solid #ddd8d0;background:#fff;font-size:10px;font-weight:700;color:#aaa;cursor:pointer;transition:all 0.14s;font-family:'DM Sans',sans-serif;letter-spacing:0.06em;text-transform:uppercase}
+.pill.on{background:#111;color:#fff;border-color:#111}
+.pill:hover:not(.on){border-color:#aaa;color:#555}
+
+.status-bar{text-align:center;padding:4px 0 10px;font-size:11px;color:#bbb;font-weight:600;letter-spacing:0.04em}
+.status-bar span{color:#888}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:12px;padding:0 1.2rem 2rem;max-width:1100px;margin:0 auto}
+
+.card{border-radius:18px;overflow:hidden;cursor:pointer;background:#fff;border:3px solid transparent;position:relative;transition:border-color 0.2s,box-shadow 0.2s,transform 0.2s;box-shadow:0 2px 8px rgba(0,0,0,0.07)}
+.card:hover{transform:scale(1.05);box-shadow:0 12px 32px rgba(0,0,0,0.14)}
+.card.saved{border-color:#22c55e}
+.card.fade-in{animation:fadeUp 0.35s cubic-bezier(.34,1.4,.64,1) both}
+
+.cover{width:100%;aspect-ratio:1;position:relative;overflow:hidden;border-radius:15px 15px 0 0;background:#e5e2dc}
+.cover img{width:100%;height:100%;object-fit:cover;display:block}
+.cover-fallback{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px}
+.fb-title{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:#fff;letter-spacing:1px;text-align:center;line-height:1.1;word-break:break-word}
+.fb-artist{font-size:9px;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.1em;font-weight:700;text-align:center}
+
+.check-ring{position:absolute;top:7px;right:7px;width:24px;height:24px;border-radius:50%;background:#22c55e;display:flex;align-items:center;justify-content:center;transform:scale(0);transition:transform 0.3s cubic-bezier(.34,1.6,.64,1);z-index:2;box-shadow:0 2px 8px rgba(0,0,0,0.2)}
+.card.saved .check-ring{transform:scale(1)}
+.check-ring svg{width:11px;height:11px;stroke:#fff;stroke-width:2.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+
+.card-info{padding:7px 9px 5px;background:#fff}
+.card-title{font-size:11px;font-weight:700;color:#111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}
+.card-artist{font-size:10px;color:#999;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.card-year{font-size:9px;color:#ccc;margin-top:1px}
+
+.card-foot{padding:5px 9px 9px}
+.stars{display:flex;gap:1px;justify-content:center}
+.s{font-size:18px;cursor:pointer;color:#e0e0e0;line-height:1;transition:color 0.1s,transform 0.1s}
+.s.on{color:#facc15}
+.s:hover{transform:scale(1.25)}
+
+.load-more{display:block;margin:0 auto 3rem;padding:12px 36px;border-radius:999px;border:2px solid #ddd8d0;background:#fff;font-size:12px;font-weight:700;color:#666;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:0.06em;text-transform:uppercase;transition:all 0.15s;box-shadow:0 2px 8px rgba(0,0,0,0.05)}
+.load-more:hover{border-color:#111;color:#111}
+.load-more:disabled{opacity:0.35;cursor:default}
+
+.spinner{display:none;width:28px;height:28px;border:3px solid #e5e2dc;border-top-color:#111;border-radius:50%;animation:spin 0.7s linear infinite;margin:2rem auto}
+.spinner.on{display:block}
+
+.api-note{text-align:center;font-size:10px;color:#ccc;padding-bottom:2rem;letter-spacing:0.05em}
+.shelf-empty{grid-column:1/-1;text-align:center;padding:4rem 1rem}
+.shelf-empty p{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#ccc;margin-top:12px}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px) scale(0.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>MY ALBUMS</h1>
+  <p>personal music shelf · millions of albums via MusicBrainz</p>
+</div>
+
+<div class="stats-bar">
+  <div class="stat"><div class="stat-n" id="s-total">0</div><div class="stat-l">saved</div></div>
+  <div class="stat"><div class="stat-n" id="s-rated">0</div><div class="stat-l">rated</div></div>
+  <div class="stat"><div class="stat-n" id="s-avg">—</div><div class="stat-l">avg ★</div></div>
+</div>
+
+<div class="nav">
+  <button class="nav-btn active" onclick="switchTab('browse',this)">Browse</button>
+  <button class="nav-btn" onclick="switchTab('shelf',this)">My Shelf</button>
+</div>
+
+<div class="toolbar">
+  <div class="searchbox">
+    <svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" id="q" placeholder="Search any album or artist…" oninput="onSearch()">
+  </div>
+  <div class="sort-wrap">
+    <button class="sort-btn on" id="sort-popular" onclick="setSort('popular',this)">Popular</button>
+    <button class="sort-btn" id="sort-newest" onclick="setSort('newest',this)">Newest</button>
+    <button class="sort-btn" id="sort-oldest" onclick="setSort('oldest',this)">Oldest</button>
+  </div>
+</div>
+
+<div class="genre-row" id="genre-row"></div>
+<div class="status-bar" id="status-bar"></div>
+<div class="grid" id="grid"></div>
+<div class="spinner" id="spinner"></div>
+<button class="load-more" id="load-more-btn" onclick="loadMore()" style="display:none">Load more albums</button>
+<p class="api-note">Data from <a href="https://musicbrainz.org" target="_blank" style="color:#bbb">MusicBrainz</a> · Art from Cover Art Archive</p>
+
+<script>
+const GENRES = ['all','rock','pop','hip hop','jazz','electronic','r&b','soul','metal','folk','classical','country','reggae','punk','indie'];
+const COLORS = ['#2b2d42','#6b1a1a','#1d4ed8','#1a5c1a','#b91c1c','#92610a','#1e40af','#5b21b6','#065f46','#be185d','#155e75','#7c2d12','#0f172a','#4a1d96','#3b0764','#166534','#854d0e','#1c1917','#0ea5e9','#7f1d1d'];
+// Seed queries for "popular" mode (gives interesting diverse results)
+const SEED_ARTISTS = ['radiohead','beatles','kendrick lamar','frank ocean','beyonce','pink floyd','nirvana','michael jackson','taylor swift','kanye west','amy winehouse','miles davis','fleetwood mac','the weeknd','bob dylan','daft punk','prince','stevie wonder','madonna','david bowie','lcd soundsystem','arcade fire','tame impala','nas','jay-z','billie eilish','adele','drake','rihanna','eminem','sade','portishead','bjork','fiona apple','phoebe bridgers','lorde','haim','angel olsen'];
+
+let shelf={}, activeTab='browse', currentSort='popular', activeGenre='all';
+let browseOffset=0, browseTotal=0, loading=false, searchTimeout=null;
+const PAGE=24;
+
+function loadShelf(){try{const s=localStorage.getItem('mab_shelf4');if(s)shelf=JSON.parse(s);}catch(e){}}
+function saveShelf(){try{localStorage.setItem('mab_shelf4',JSON.stringify(shelf));}catch(e){}}
+
+function albumColor(id){
+  let h=0; for(let i=0;i<id.length;i++){h=((h<<5)-h)+id.charCodeAt(i);h|=0;}
+  return COLORS[Math.abs(h)%COLORS.length];
+}
+
+function coverUrl(mbid){return `https://coverartarchive.org/release/${mbid}/front-250`;}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+
+// ── MusicBrainz API ────────────────────────────────────────────────────────
+async function mbFetch(query, offset){
+  const params=new URLSearchParams({query,limit:PAGE,offset,fmt:'json'});
+  const r=await fetch(`https://musicbrainz.org/ws/2/release/?${params}`,{headers:{'User-Agent':'MyAlbumsShelf/2.0 ( music-shelf-app )'}});
+  if(!r.ok) throw new Error('API error '+r.status);
+  return r.json();
+}
+
+function buildQuery(q, genre, sort){
+  let parts=[];
+
+  if(q.trim()){
+    // User is searching
+    parts.push(`(release:"${q}" OR artist:"${q}")`);
+  } else {
+    // Browsing mode: use a seed artist to get interesting albums
+    if(sort==='popular'){
+      const seed=SEED_ARTISTS[Math.floor((browseOffset/PAGE))%SEED_ARTISTS.length];
+      parts.push(`artist:"${seed}"`);
+    } else {
+      parts.push('status:Official');
+    }
+  }
+
+  if(genre!=='all') parts.push(`tag:"${genre}"`);
+  parts.push('primarytype:Album');
+  parts.push('status:Official');
+
+  return parts.join(' AND ');
+}
+
+// ── Fetch & render browse ──────────────────────────────────────────────────
+async function fetchBrowse(reset=false){
+  if(loading) return;
+  loading=true;
+  if(reset){browseOffset=0; browseTotal=0;}
+
+  const q=document.getElementById('q').value;
+  const grid=document.getElementById('grid');
+  const spinner=document.getElementById('spinner');
+  const btn=document.getElementById('load-more-btn');
+
+  if(reset) grid.innerHTML='';
+  spinner.classList.add('on');
+  btn.style.display='none';
+
+  try{
+    const query=buildQuery(q,activeGenre,currentSort);
+    const data=await mbFetch(query,browseOffset);
+    const releases=(data.releases||[]).filter(r=>r.id&&r.title);
+    browseTotal=data.count||0;
+    browseOffset+=releases.length;
+
+    if(!releases.length&&reset){
+      grid.innerHTML='<div class="shelf-empty"><p>No results found — try a different search</p></div>';
+      document.getElementById('status-bar').innerHTML='';
+    } else {
+      const html=releases.map((r,i)=>cardHtml(r,false,i*35)).join('');
+      grid.insertAdjacentHTML('beforeend',html);
+      bindStars();
+      const showing=grid.querySelectorAll('.card').length;
+      document.getElementById('status-bar').innerHTML=browseTotal?`Showing <span>${showing.toLocaleString()}</span> of <span>${browseTotal.toLocaleString()}+</span> albums`:'';
+    }
+
+    // In popular/seed mode always show load more; in search mode check count
+    if(q.trim()){
+      btn.style.display=browseOffset<browseTotal?'block':'none';
+    } else {
+      btn.style.display='block'; // always more seeds to explore
+    }
+  }catch(e){
+    grid.insertAdjacentHTML('beforeend','<div style="grid-column:1/-1;text-align:center;color:#ccc;padding:2rem;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em">Could not reach MusicBrainz — check your connection and try again.</div>');
+    btn.style.display='none';
+  }
+
+  spinner.classList.remove('on');
+  loading=false;
+}
+
+function loadMore(){fetchBrowse(false);}
+
+// ── Card HTML ──────────────────────────────────────────────────────────────
+function cardHtml(r, showStars, delay=0){
+  const id=r.id;
+  const title=r.title||'Unknown';
+  const artist=r['artist-credit']?.[0]?.artist?.name||r['artist-credit']?.[0]?.name||'Unknown';
+  const year=(r.date||r['first-release-date']||'').slice(0,4);
+  const saved=!!shelf[id];
+  const color=albumColor(id);
+  const short=s=>s.length>19?s.slice(0,18)+'…':s;
+
+  return `<div class="card fade-in${saved?' saved':''}" id="card-${id}" style="animation-delay:${delay}ms">
+    <div class="cover" onclick="toggle('${id}','${esc(title)}','${esc(artist)}','${year}')">
+      <img src="${coverUrl(id)}" alt="${esc(title)}" loading="lazy"
+        onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div class="cover-fallback" style="background:${color};display:none">
+        <div class="fb-title">${esc(title)}</div>
+        <div class="fb-artist">${esc(artist)}</div>
+      </div>
+      <div class="check-ring"><svg viewBox="0 0 13 10"><polyline points="1.5,5 5,8.5 11.5,1.5"/></svg></div>
+    </div>
+    <div class="card-info">
+      <div class="card-title" title="${esc(title)}">${esc(short(title))}</div>
+      <div class="card-artist" title="${esc(artist)}">${esc(short(artist))}</div>
+      ${year?`<div class="card-year">${year}</div>`:''}
+    </div>
+    ${showStars?`<div class="card-foot"><div class="stars" data-id="${id}">${starsHtml(id)}</div></div>`:''}
+  </div>`;
+}
+
+function starsHtml(id){
+  const r=shelf[id]?.rating||0;
+  return [1,2,3,4,5].map(i=>`<span class="s${i<=r?' on':''}" data-id="${id}" data-v="${i}">★</span>`).join('');
+}
+
+function bindStars(){
+  document.querySelectorAll('.stars .s').forEach(s=>{
+    s.onclick=e=>{
+      e.stopPropagation();
+      const id=s.dataset.id,v=Number(s.dataset.v);
+      if(!shelf[id]) shelf[id]={addedAt:Date.now()};
+      shelf[id].rating=v;
+      saveShelf(); updateStats();
+      document.querySelectorAll(`.stars[data-id="${id}"] .s`).forEach((x,i)=>x.classList.toggle('on',i<v));
+    };
+  });
+}
+
+// ── Shelf tab ──────────────────────────────────────────────────────────────
+function renderShelf(){
+  const q=(document.getElementById('q').value||'').toLowerCase();
+  const grid=document.getElementById('grid');
+  document.getElementById('load-more-btn').style.display='none';
+  document.getElementById('spinner').classList.remove('on');
+
+  const ids=Object.keys(shelf);
+  if(!ids.length){
+    grid.innerHTML='<div class="shelf-empty"><p>Click any album cover to save it here</p></div>';
+    document.getElementById('status-bar').innerHTML='';
+    return;
+  }
+  const saved=ids.map(id=>({id,...shelf[id]})).filter(a=>!q||(a.title||'').toLowerCase().includes(q)||(a.artist||'').toLowerCase().includes(q));
+
+  grid.innerHTML=saved.map((a,i)=>{
+    const color=albumColor(a.id);
+    const title=a.title||'Unknown', artist=a.artist||'Unknown', year=a.year||'';
+    const short=s=>s.length>19?s.slice(0,18)+'…':s;
+    return `<div class="card fade-in saved" id="card-${a.id}" style="animation-delay:${i*30}ms">
+      <div class="cover" onclick="toggle('${a.id}','${esc(title)}','${esc(artist)}','${year}')">
+        <img src="${coverUrl(a.id)}" alt="${esc(title)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+        <div class="cover-fallback" style="background:${color};display:none"><div class="fb-title">${esc(title)}</div><div class="fb-artist">${esc(artist)}</div></div>
+        <div class="check-ring"><svg viewBox="0 0 13 10"><polyline points="1.5,5 5,8.5 11.5,1.5"/></svg></div>
+      </div>
+      <div class="card-info"><div class="card-title">${esc(short(title))}</div><div class="card-artist">${esc(short(artist))}</div>${year?`<div class="card-year">${year}</div>`:''}</div>
+      <div class="card-foot"><div class="stars" data-id="${a.id}">${starsHtml(a.id)}</div></div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('status-bar').innerHTML=`<span>${saved.length}</span> album${saved.length!==1?'s':''} on your shelf`;
+  bindStars();
+}
+
+// ── Controls ───────────────────────────────────────────────────────────────
+function toggle(id,title,artist,year){
+  const card=document.getElementById('card-'+id);
+  if(shelf[id]){
+    delete shelf[id]; card?.classList.remove('saved');
+  } else {
+    shelf[id]={rating:0,addedAt:Date.now(),title,artist,year};
+    if(card){
+      card.classList.add('saved');
+      card.style.transition='transform 0.3s cubic-bezier(.34,1.6,.64,1)';
+      card.style.transform='scale(1.08)';
+      setTimeout(()=>{card.style.transform='scale(1)';},300);
+    }
+  }
+  saveShelf(); updateStats();
+  if(activeTab==='shelf') renderShelf();
+}
+
+function updateStats(){
+  const ids=Object.keys(shelf);
+  const rated=ids.filter(id=>shelf[id]?.rating>0);
+  const avg=rated.length?(rated.reduce((s,id)=>s+(shelf[id].rating||0),0)/rated.length).toFixed(1):'—';
+  document.getElementById('s-total').textContent=ids.length;
+  document.getElementById('s-rated').textContent=rated.length;
+  document.getElementById('s-avg').textContent=avg;
+}
+
+function setSort(s,el){
+  currentSort=s;
+  document.querySelectorAll('.sort-btn').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  if(activeTab==='browse') fetchBrowse(true);
+}
+
+function setGenre(g){
+  activeGenre=g;
+  document.querySelectorAll('.pill').forEach(p=>p.classList.toggle('on',p.dataset.genre===g));
+  if(activeTab==='browse') fetchBrowse(true);
+}
+
+function onSearch(){
+  clearTimeout(searchTimeout);
+  searchTimeout=setTimeout(()=>{
+    if(activeTab==='browse') fetchBrowse(true);
+    else renderShelf();
+  },450);
+}
+
+function switchTab(t,el){
+  activeTab=t;
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  if(t==='browse') fetchBrowse(true);
+  else renderShelf();
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+document.getElementById('genre-row').innerHTML=GENRES.map(g=>
+  `<button class="pill${g==='all'?' on':''}" data-genre="${g}" onclick="setGenre('${g}')">${g==='all'?'All':g.charAt(0).toUpperCase()+g.slice(1)}</button>`
+).join('');
+
+loadShelf(); updateStats(); fetchBrowse(true);
+</script>
+</body>
+</html>
