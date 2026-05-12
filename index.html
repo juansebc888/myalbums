@@ -501,6 +501,34 @@ function renderShelf(){
     </div>`;
   }).join('');
   // Hook fallbacks
+  hookImageFallbacks(grid);
+  document.getElementById('status-bar').innerHTML=`<span>${saved.length}</span> album${saved.length!==1?'s':''} saved`;
+}
+
+// ── API ────────────────────────────────────────────────────────────────────
+async function mbFetch(query,offset){
+  const params=new URLSearchParams({query,limit:PAGE,offset,fmt:'json'});
+  const r=await fetch(`https://musicbrainz.org/ws/2/release/?${params}`,{headers:{'User-Agent':'MyAlbumsShelf/4.0 ( music-shelf-app )'}});
+  if(!r.ok) throw new Error('API error '+r.status);
+  return r.json();
+}
+
+// Track which seed artist we're currently browsing so it doesn't change mid-scroll
+let currentSeedIdx=0;
+
+function buildQuery(q,genre,sort){
+  let parts=[];
+  if(q.trim()){parts.push(`(release:"${q}" OR artist:"${q}")`);}
+  else{
+    if(sort==='popular'){parts.push(`artist:"${SEED_ARTISTS[currentSeedIdx%SEED_ARTISTS.length]}"`);}
+    else parts.push('status:Official');
+  }
+  if(genre!=='all') parts.push(`tag:"${genre}"`);
+  parts.push('primarytype:Album');parts.push('status:Official');
+  return parts.join(' AND ');
+}
+
+function hookImageFallbacks(grid){
   grid.querySelectorAll('.card img[data-mbid]').forEach(img=>{
     if(img._hookDone) return;
     img._hookDone=true;
@@ -514,33 +542,12 @@ function renderShelf(){
       }
     };
   });
-  document.getElementById('status-bar').innerHTML=`<span>${saved.length}</span> album${saved.length!==1?'s':''} saved`;
-}
-
-// ── API ────────────────────────────────────────────────────────────────────
-async function mbFetch(query,offset){
-  const params=new URLSearchParams({query,limit:PAGE,offset,fmt:'json'});
-  const r=await fetch(`https://musicbrainz.org/ws/2/release/?${params}`,{headers:{'User-Agent':'MyAlbumsShelf/4.0 ( music-shelf-app )'}});
-  if(!r.ok) throw new Error('API error '+r.status);
-  return r.json();
-}
-
-function buildQuery(q,genre,sort){
-  let parts=[];
-  if(q.trim()){parts.push(`(release:"${q}" OR artist:"${q}")`);}
-  else{
-    if(sort==='popular'){const seed=SEED_ARTISTS[Math.floor((browseOffset/PAGE))%SEED_ARTISTS.length];parts.push(`artist:"${seed}"`);}
-    else parts.push('status:Official');
-  }
-  if(genre!=='all') parts.push(`tag:"${genre}"`);
-  parts.push('primarytype:Album');parts.push('status:Official');
-  return parts.join(' AND ');
 }
 
 async function fetchBrowse(reset=false){
   if(loading)return;
   loading=true;
-  if(reset){browseOffset=0;browseTotal=0;resetSeen();}
+  if(reset){browseOffset=0;browseTotal=0;resetSeen();currentSeedIdx=Math.floor(Math.random()*SEED_ARTISTS.length);}
   const q=document.getElementById('q').value;
   const grid=document.getElementById('grid');
   const spinner=document.getElementById('spinner');
@@ -549,33 +556,44 @@ async function fetchBrowse(reset=false){
   try{
     const query=buildQuery(q,activeGenre,currentSort);
     const data=await mbFetch(query,browseOffset);
-    const releases=(data.releases||[]).filter(r=>r.id&&r.title&&!isDupe(r));
+    const raw=data.releases||[];
     browseTotal=data.count||0;
-    browseOffset+=(data.releases||[]).length;
-    if(!releases.length&&reset){
+    browseOffset+=raw.length;
+
+    const releases=raw.filter(r=>r.id&&r.title&&!isDupe(r));
+
+    const noResults=grid.querySelectorAll('.card').length===0&&releases.length===0;
+
+    if(noResults&&raw.length===0){
+      // Truly no results from API
       grid.innerHTML='<div class="shelf-empty"><p>No results — try a different search</p></div>';
       document.getElementById('status-bar').innerHTML='';
-    } else {
+    } else if(releases.length>0){
       grid.insertAdjacentHTML('beforeend',releases.map((r,i)=>cardHtml(r,i*22)).join(''));
-      // Hook up fallback image loading for cards just added
-      grid.querySelectorAll('.card img[data-mbid]').forEach(img=>{
-        if(img._hookDone) return;
-        img._hookDone=true;
-        const mbid=img.dataset.mbid, rgid=img.dataset.rgid||'';
-        img.onerror=function(){
-          if(rgid&&img.src.includes('/release/')){
-            img.onerror=function(){img.style.display='none';img.nextElementSibling.style.display='flex';};
-            img.src=`https://coverartarchive.org/release-group/${rgid}/front-250`;
-          } else {
-            img.style.display='none';img.nextElementSibling.style.display='flex';
-          }
-        };
-      });
+      hookImageFallbacks(grid);
       const showing=grid.querySelectorAll('.card').length;
-      document.getElementById('status-bar').innerHTML=browseTotal?`<span>${showing.toLocaleString()}</span> albums shown`:'';
+      document.getElementById('status-bar').innerHTML=`<span>${showing.toLocaleString()}</span> albums shown`;
+    } else if(raw.length>0&&releases.length===0){
+      // All results on this page were dupes — fetch next page automatically
+      loading=false;
+      spinner.classList.remove('on');
+      // Only auto-continue if there's more data and we haven't gone too deep
+      if(browseOffset<browseTotal&&browseOffset<PAGE*8){
+        fetchBrowse(false);
+        return;
+      }
+    }
+
+    // If popular mode and we've exhausted this artist's releases, switch to next artist
+    if(currentSort==='popular'&&raw.length<PAGE&&!q.trim()){
+      currentSeedIdx++;
+      browseOffset=0;
+      browseTotal=0;
     }
   }catch(e){
-    if(reset) grid.insertAdjacentHTML('beforeend','<div style="grid-column:1/-1;text-align:center;color:var(--faint);padding:2rem;font-size:0.7rem">Could not reach MusicBrainz — check your connection.</div>');
+    if(grid.querySelectorAll('.card').length===0){
+      grid.insertAdjacentHTML('beforeend','<div style="grid-column:1/-1;text-align:center;color:var(--faint);padding:2rem;font-size:0.7rem">Could not reach MusicBrainz — check your connection.</div>');
+    }
   }
   spinner.classList.remove('on');
   loading=false;
